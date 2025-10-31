@@ -5,26 +5,51 @@ use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
-use Illuminate\Http\Request;
+use App\Models\User;
+use App\Services\EncryptionRoom;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
 
 new #[Layout('layouts.guest')] class extends Component
 {
-    public LoginForm $form;
+
+     public LoginForm $form;
 
     /**
-     * Handle an incoming authentication request.
+     * Handle the login request.
      */
     public function login(): void
     {
         $this->validate();
 
-        $this->form->authenticate();
+        $user = User::where('email', $this->form->email)->first();
 
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'email' => __('These credentials do not match our records.'),
+            ]);
+        }
+
+        try {
+            $encryptor = new EncryptionRoom();
+            $decryptedPassword = $encryptor->decrypt($user->password);
+        } catch (\Throwable $e) {
+            throw ValidationException::withMessages([
+                'email' => __('Error decrypting password data.'),
+            ]);
+        }
+
+        if ($this->form->password !== $decryptedPassword) {
+            throw ValidationException::withMessages([
+                'email' => __('These credentials do not match our records.'),
+            ]);
+        }
+
+        Auth::login($user);
         Session::regenerate();
 
         $this->redirectIntended(default: RouteServiceProvider::HOME, navigate: true);
     }
-
 
 }; ?>
 

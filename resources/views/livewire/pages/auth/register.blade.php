@@ -4,10 +4,11 @@ use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+// use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use App\Services\encryptionRoom;
 
 new #[Layout('layouts.guest')] class extends Component
 {
@@ -19,15 +20,23 @@ new #[Layout('layouts.guest')] class extends Component
     /**
      * Handle an incoming registration request.
      */
+
     public function register(): void
     {
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'name' =>  ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        try {
+            $encryptor = new EncryptionRoom();
+            $validated['password'] = $encryptor->encrypt($validated['password']);
+        } catch (\Throwable $e) {
+            // Jika terjadi error enkripsi, hentikan proses dan tampilkan error
+            session()->flash('error', 'Gagal mengenkripsi password.');
+            return;
+        }
 
         event(new Registered($user = User::create($validated)));
 

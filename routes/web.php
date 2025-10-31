@@ -25,7 +25,7 @@ use App\Models\products;
 Route::view('/', 'customer.customerMain');
 
 Route::view('dashboard', 'customerverifed.customerMain')
-    ->middleware(['auth', 'verified'])
+    ->middleware(['verified'])
     ->name('dashboard');
 
 Route::view('profile', 'profile')
