@@ -98,4 +98,8 @@ class encryptionRoom
     {
         return $this->caesarEncrypt($string, 26 - ($shift % 26));
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 4439a35eae919225986472b7e06c6b7914ce3458

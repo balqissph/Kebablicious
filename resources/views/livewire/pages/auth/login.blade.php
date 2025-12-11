@@ -5,12 +5,7 @@ use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
-use App\Models\User;
-use App\Services\EncryptionRoom;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 
 new #[Layout('layouts.guest')] class extends Component
 {
@@ -24,47 +19,8 @@ new #[Layout('layouts.guest')] class extends Component
     {
         $this->validate();
 
-        $key = 'login-attempts:' . Str::lower($this->form->email) . '|' . request()->ip();
+        $this->form->authenticate();
 
-        // Cek jika IP/email sedang diblokir
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $seconds = RateLimiter::availableIn($key);
-            throw ValidationException::withMessages([
-                'form.email' => "Terlalu banyak percobaan login. Coba lagi dalam {$seconds} detik.",
-            ]);
-        }
-
-        $user = User::where('email', $this->form->email)->first();
-
-        if (!$user) {
-            RateLimiter::hit($key, 300);
-            throw ValidationException::withMessages([
-                'email' => __('Email tidak ditemukan.'),
-            ]);
-        }
-
-        try {
-            $encryptor = new EncryptionRoom();
-            $decryptedPassword = $encryptor->decrypt($user->password);
-        } catch (\Throwable $e) {
-            RateLimiter::hit($key, 300);
-
-            throw ValidationException::withMessages([
-                'email' => __('Terjadi kesalahan saat membaca data.'),
-            ]);
-        }
-
-        if ($this->form->password !== $decryptedPassword) {
-            RateLimiter::hit($key, 300);
-
-            throw ValidationException::withMessages([
-                'form.password' => 'Password salah.',
-            ]);
-        }
-
-        RateLimiter::clear($key);
-
-        Auth::login($user);
         Session::regenerate();
 
         $this->redirectIntended(default: RouteServiceProvider::HOME, navigate: true);

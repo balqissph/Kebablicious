@@ -9,7 +9,10 @@ use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use App\Services\encryptionRoom;
+<<<<<<< HEAD
 use App\Helpers\AESCipher;
+=======
+>>>>>>> 4439a35eae919225986472b7e06c6b7914ce3458
 
 new #[Layout('layouts.guest')] class extends Component
 {
@@ -35,13 +38,20 @@ new #[Layout('layouts.guest')] class extends Component
         ]);
 
         try {
+<<<<<<< HEAD
             $validated['phone_number'] = AESCipher::encrypt($validated['phone_number']);
             $validated['address'] = AESCipher::encrypt($validated['address']);
+=======
+>>>>>>> 4439a35eae919225986472b7e06c6b7914ce3458
             $encryptor = new EncryptionRoom();
             $validated['password'] = $encryptor->encrypt($validated['password']);
         } catch (\Throwable $e) {
             // Jika terjadi error enkripsi, hentikan proses dan tampilkan error
+<<<<<<< HEAD
             session()->flash('error', 'Gagal mengenkripsi data sensitif.');
+=======
+            session()->flash('error', 'Gagal mengenkripsi password.');
+>>>>>>> 4439a35eae919225986472b7e06c6b7914ce3458
             return;
         }
 
