@@ -13,7 +13,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Spatie\Permission\Models\Role;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable implements MustVerifyEmail, JWTSubject
+class User extends Authenticatable 
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
@@ -50,6 +50,8 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         'name',
         'email',
         'password',
+        'phone_number',
+        'address',
     ];
 
     /**

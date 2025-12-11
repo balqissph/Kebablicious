@@ -12,9 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('carts', function(Blueprint $table) {
-            $table->id('id')->autoIncrement();
-            $table->id('user_id');
-            $table->foreign('user_id',)->references('id')->on('users');
+            $table->id(); // primary key, auto increment
+
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->onDelete('cascade');
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
         });

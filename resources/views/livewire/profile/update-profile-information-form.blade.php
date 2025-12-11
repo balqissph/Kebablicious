@@ -6,19 +6,28 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 use Livewire\Volt\Component;
+use App\Helpers\AESCipher;
 
 new class extends Component
 {
     public string $name = '';
     public string $email = '';
+    public string $phone_number = '';
+    public string $address = '';
 
     /**
      * Mount the component.
      */
     public function mount(): void
     {
-        $this->name = Auth::user()->name;
-        $this->email = Auth::user()->email;
+        $user = Auth::user();
+
+        $this->name = $user->name;
+        $this->email = $user->email;
+
+        // Dekripsi AES 
+        $this->phone_number = AESCipher::decrypt($user->phone_number);
+        $this->address = AESCipher::decrypt($user->address);
     }
 
     /**
@@ -31,8 +40,13 @@ new class extends Component
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
+            'phone_number' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:255'],
         ]);
 
+        $validated['phone_number'] = AESCipher::encrypt($validated['phone_number']);
+        $validated['address'] = AESCipher::encrypt($validated['address']);
+        
         $user->fill($validated);
 
         if ($user->isDirty('email')) {
@@ -103,6 +117,20 @@ new class extends Component
                     @endif
                 </div>
             @endif
+        </div>
+
+        <div>
+            <x-input-label for="phone_number" :value="__('Phone Number')" />
+            <x-text-input wire:model="phone_number" id="phone_number" name="phone_number"
+                type="text" class="mt-1 block w-full" required />
+            <x-input-error class="mt-2" :messages="$errors->get('phone_number')" />
+        </div>
+
+        <div>
+            <x-input-label for="address" :value="__('Address')" />
+            <x-text-input wire:model="address" id="address" name="address"
+                type="text" class="mt-1 block w-full" required />
+            <x-input-error class="mt-2" :messages="$errors->get('address')" />
         </div>
 
         <div class="flex items-center gap-4">

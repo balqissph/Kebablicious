@@ -4,10 +4,12 @@ use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+// use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use App\Services\encryptionRoom;
+use App\Helpers\AESCipher;
 
 new #[Layout('layouts.guest')] class extends Component
 {
@@ -15,19 +17,33 @@ new #[Layout('layouts.guest')] class extends Component
     public string $email = '';
     public string $password = '';
     public string $password_confirmation = '';
+    public string $phone_number = '';
+    public string $address = '';
 
     /**
      * Handle an incoming registration request.
      */
+
     public function register(): void
     {
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'name' =>  ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+            'phone_number' =>  ['required', 'string', 'max:255'],
+            'address' =>  ['required', 'string', 'max:255'],
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        try {
+            $validated['phone_number'] = AESCipher::encrypt($validated['phone_number']);
+            $validated['address'] = AESCipher::encrypt($validated['address']);
+            $encryptor = new EncryptionRoom();
+            $validated['password'] = $encryptor->encrypt($validated['password']);
+        } catch (\Throwable $e) {
+            // Jika terjadi error enkripsi, hentikan proses dan tampilkan error
+            session()->flash('error', 'Gagal mengenkripsi data sensitif.');
+            return;
+        }
 
         event(new Registered($user = User::create($validated)));
 
@@ -51,6 +67,22 @@ new #[Layout('layouts.guest')] class extends Component
             <x-input-label for="email" :value="__('Email')" />
             <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        </div>
+
+        <!-- Phone Number -->
+        <div class="mt-4">
+            <x-input-label for="phone_number" :value="__('Phone Number')" />
+            <x-text-input wire:model="phone_number" id="phone_number" class="block mt-1 w-full"
+                type="text" name="phone_number" required />
+            <x-input-error :messages="$errors->get('phone_number')" class="mt-2" />
+        </div>
+
+        <!-- Address -->
+        <div class="mt-4">
+            <x-input-label for="address" :value="__('Address')" />
+            <x-text-input wire:model="address" id="address" class="block mt-1 w-full"
+                type="text" name="address" required />
+            <x-input-error :messages="$errors->get('address')" class="mt-2" />
         </div>
 
         <!-- Password -->
