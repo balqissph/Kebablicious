@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use App\Models\User;
+use App\Services\EncryptionRoom;
 
 new #[Layout('layouts.guest')] class extends Component
 {
@@ -19,12 +22,54 @@ new #[Layout('layouts.guest')] class extends Component
     {
         $this->validate();
 
-        $this->form->authenticate();
+        $key = 'login-attempts:' . Str::lower($this->form->email) . '|' . request()->ip();
 
+        // Jika sudah diblokir
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+            throw ValidationException::withMessages([
+                'form.email' => "Terlalu banyak percobaan login. Coba lagi dalam {$seconds} detik.",
+            ]);
+        }
+
+        $user = User::where('email', $this->form->email)->first();
+
+        if (!$user) {
+            RateLimiter::hit($key, 300);
+            throw ValidationException::withMessages([
+                'form.email' => __('Email tidak ditemukan.'),
+            ]);
+        }
+
+        try {
+            $encryptor = new EncryptionRoom();
+            $decryptedPassword = $encryptor->decrypt($user->password);
+        } catch (\Throwable $e) {
+            RateLimiter::hit($key, 300);
+
+            throw ValidationException::withMessages([
+                'form.email' => __('Terjadi kesalahan saat membaca data.'),
+            ]);
+        }
+
+        // Jika password salah → error di input password
+        if ($this->form->password !== $decryptedPassword) {
+            RateLimiter::hit($key, 300);
+
+            throw ValidationException::withMessages([
+                'form.password' => 'Password salah.',
+            ]);
+        }
+
+        // Jika berhasil login → reset limit
+        RateLimiter::clear($key);
+
+        Auth::login($user);
         Session::regenerate();
 
         $this->redirectIntended(default: RouteServiceProvider::HOME, navigate: true);
     }
+
 
 }; ?>
 
